@@ -78,38 +78,6 @@
         }
     }
 
-    async function analyzeImage() {
-        if (!fileInput?.files?.length) {
-            errorMessage = "请先上传一张照片";
-            return;
-        }
-
-        const file = fileInput.files[0];
-        const formData = new FormData();
-        formData.append('image', file);
-
-        try {
-            isLoading = true;
-            errorMessage = null;
-            
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`服务器返回错误: ${response.status}`);
-            }
-
-            result = await response.json();
-        } catch (error) {
-            console.error('分析失败:', error);
-            errorMessage = error instanceof Error ? error.message : "照片分析失败，请稍后再试";
-        } finally {
-            isLoading = false;
-        }
-    }
-
     function resetAll() {
         clearFileInput();
         errorMessage = null;
@@ -132,8 +100,9 @@
 
     <form method="POST" action="?/analyze" enctype="multipart/form-data" use:enhance={() => {
         isLoading = true;
-        return async ({ result, update }) => {
+        return async ({ result }) => {
             if (result.type === 'success') {
+                // result.data.result 是后端返回的分析结果, markdown 格式
                 console.log('分析结果log:', result.data);
             }
             isLoading = false;

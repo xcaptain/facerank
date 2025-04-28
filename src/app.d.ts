@@ -6,7 +6,11 @@ declare global {
 		// interface Locals {}
 		// interface PageData {}
 		// interface PageState {}
-		// interface Platform {}
+		interface Platform {
+			env: {
+				GOOGLE_AI_STUDIO_API_TOKEN: string;
+			}
+		}
 	}
 }
 
