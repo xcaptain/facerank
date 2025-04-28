@@ -1,13 +1,15 @@
 <script lang="ts">
     import "../app.css";
     import { onMount } from 'svelte';
-	import { enhance, applyAction } from '$app/forms';
+    import { enhance, applyAction } from '$app/forms';
+    import { marked } from 'marked';
 
     let fileInput: HTMLInputElement;
     let previewImage: string | null = $state(null);
     let isDragging = $state(false);
     let isLoading = $state(false);
     let result: { score: number; suggestions: string[] } | null = $state(null);
+    let markdownResult: string | null = $state(null);
     let errorMessage: string | null = $state(null);
 
     function handleFileSelect(event: Event) {
@@ -36,6 +38,7 @@
         reader.onload = (e) => {
             previewImage = e.target?.result as string;
             result = null; // 重置之前的结果
+            markdownResult = null; // 重置 markdown 结果
         };
         reader.readAsDataURL(file);
     }
@@ -46,6 +49,7 @@
         }
         previewImage = null;
         result = null;
+        markdownResult = null;
     }
 
     function handleDragOver(event: DragEvent) {
@@ -82,6 +86,16 @@
         clearFileInput();
         errorMessage = null;
         result = null;
+        markdownResult = null;
+    }
+
+    // 提取分数的辅助函数（从 markdown 中提取数字分数）
+    function extractScore(markdown: string) {
+        const scoreMatch = markdown.match(/(\d{1,2}(\.\d+)?)(\/\d+)?分/);
+        if (scoreMatch) {
+            return parseFloat(scoreMatch[1]);
+        }
+        return null;
     }
 
     onMount(() => {
@@ -100,13 +114,25 @@
 
     <form method="POST" action="?/analyze" enctype="multipart/form-data" use:enhance={() => {
         isLoading = true;
-        return async ({ result }) => {
-            if (result.type === 'success') {
-                // result.data.result 是后端返回的分析结果, markdown 格式
-                console.log('分析结果log:', result.data);
+        return async ({ result: formResult }) => {
+            if (formResult.type === 'success') {
+                // 保存服务端返回的 markdown 结果
+                markdownResult = formResult.data!.result as string;
+                // console.log('分析结果log:', formResult.data);
+                
+                // 尝试提取分数用于显示在进度条中
+                const score = extractScore(markdownResult);
+                if (score) {
+                    result = {
+                        score: score,
+                        suggestions: [] 
+                    };
+                }
+            } else {
+                errorMessage = "分析失败，请稍后重试";
             }
             isLoading = false;
-		};
+        };
     }}>
         <!-- 上传区域 -->
         <div role="region"
@@ -125,6 +151,7 @@
                         class="mx-auto max-h-80 rounded-lg shadow-md"
                     />
                     <button 
+                        type="button"
                         aria-label="重置照片"
                         class="btn btn-circle btn-sm absolute top-2 right-2 bg-base-100/80 hover:bg-base-200"
                         onclick={resetAll}
@@ -184,7 +211,30 @@
         {/if}
 
         <!-- 结果展示 -->
-        {#if result}
+        {#if markdownResult}
+            <div class="result-container p-6 bg-base-200 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    分析结果
+                </h2>
+                
+                <!-- 分数显示（如果能提取到分数） -->
+                {#if result?.score}
+                <div class="score-container mb-6 flex flex-col items-center">
+                    <div class="radial-progress text-primary mb-2" style="--value:{result.score * 10}; --size:8rem; --thickness: 0.8rem;">{result.score}</div>
+                    <p class="text-lg font-medium">颜值评分</p>
+                </div>
+                {/if}
+                
+                <!-- 使用 tailwind typography 插件渲染 Markdown -->
+                <div class="prose prose-sm md:prose max-w-none">
+                    {@html marked(markdownResult)}
+                </div>
+            </div>
+        {:else if result}
+            <!-- 旧的结果展示方式（保留兼容性） -->
             <div class="result-container p-6 bg-base-200 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">

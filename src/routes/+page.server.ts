@@ -13,15 +13,11 @@ export const actions = {
         if (!file) {
             return error(400, 'No file uploaded');
         }
-        const fileName = file.name;
-        const fileType = file.type;
-        const fileSize = file.size;
+        // const fileName = file.name;
+        // const fileType = file.type;
+        // const fileSize = file.size;
+        // console.log('File info:', fileName, fileType, fileSize, platform?.env.GOOGLE_AI_STUDIO_API_TOKEN);
 
-        console.log('File info:', fileName, fileType, fileSize, platform?.env.GOOGLE_AI_STUDIO_API_TOKEN);
-
-        // Perform analysis on the uploaded file
-        // For example, you can use a library like 'file-type' to determine the file type
-        // and perform further analysis based on that.
         const result = await rankImage(file, platform?.env.GOOGLE_AI_STUDIO_API_TOKEN!);
 
         return {
@@ -50,6 +46,6 @@ async function rankImage(file: File, apiKey: string) {
             "你是一个精通中国男人审美标准的AI助手 ，你很擅长识别人物图片并且对颜值进行评分。如果用户上传的图片是人物照片，则请给出评分，范围是1-10分，1分表示非常丑，10分表示非常美。请给出评分和理由。如果用户上传的图片不是人物照片，请告诉我这不是人物照片。",
         ]),
     });
-    console.log(response.text);
+    // console.log(response.text);
     return response.text;
 }
